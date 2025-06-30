@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Mateo's Barber</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #5a3c2e; /* Color similar al de tu logo */
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #5a3c2e;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .loading-message {
+            text-align: center;
+            font-style: italic;
+            color: #777;
+        }
+        .no-turnos-message {
+            text-align: center;
+            font-style: italic;
+            color: #777;
+            margin-top: 20px;
+        }
+        /* Estilos para el botón de eliminar */
+        .delete-btn {
+            background-color: #dc3545; /* Rojo para eliminar */
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+        .delete-btn:hover {
+            background-color: #c82333; /* Rojo más oscuro al pasar el ratón */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Panel de Administración de Turnos</h1>
+
+        <p class="loading-message" id="loadingMessage">Cargando turnos...</p>
+        <p class="no-turnos-message" id="noTurnosMessage" style="display: none;">No hay turnos registrados.</p>
+
+        <table id="turnosTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Servicio</th>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Acciones</th> </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        const backendUrl = 'https://mateos-barber-api.onrender.com'; // Asegúrate de que este sea el puerto correcto de tu backend
+
+        async function cargarTurnos() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const noTurnosMessage = document.getElementById('noTurnosMessage');
+            const turnosTable = document.getElementById('turnosTable');
+            const tableBody = turnosTable.querySelector('tbody');
+
+            loadingMessage.style.display = 'block';
+            turnosTable.style.display = 'none';
+            noTurnosMessage.style.display = 'none';
+            tableBody.innerHTML = ''; // Limpiar la tabla antes de cargar
+
+            try {
+                const response = await fetch(`${backendUrl}/api/admin/turnos`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.turnos && data.turnos.length > 0) {
+                    data.turnos.forEach(turno => {
+                        const row = tableBody.insertRow();
+                        row.insertCell().textContent = turno.id;
+                        row.insertCell().textContent = turno.fecha;
+                        row.insertCell().textContent = turno.hora;
+                        row.insertCell().textContent = turno.servicio;
+                        row.insertCell().textContent = turno.nombre;
+                        row.insertCell().textContent = turno.telefono;
+                        row.insertCell().textContent = turno.email || 'N/A'; // Por si el email es nulo
+
+                        // Celda para acciones y botón de eliminar
+                        const actionsCell = row.insertCell();
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Eliminar';
+                        deleteButton.classList.add('delete-btn'); // Añadir clase para estilos CSS
+
+                        // Asignar un evento click al botón
+                        deleteButton.onclick = () => confirmarEliminarTurno(turno.id, `${turno.nombre} el ${turno.fecha} a las ${turno.hora}`);
+                        actionsCell.appendChild(deleteButton);
+                    });
+                    turnosTable.style.display = 'table';
+                } else {
+                    noTurnosMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error al cargar los turnos:', error);
+                loadingMessage.textContent = 'Error al cargar los turnos. Por favor, intente de nuevo.';
+                loadingMessage.style.color = 'red';
+            } finally {
+                loadingMessage.style.display = 'none';
+            }
+        }
+
+        // Función para confirmar y eliminar un turno
+        async function confirmarEliminarTurno(id, descripcion) {
+            if (confirm(`¿Estás seguro de que quieres eliminar el turno de ${descripcion}? Esta acción es irreversible.`)) {
+                await eliminarTurno(id);
+            }
+        }
+
+        async function eliminarTurno(id) {
+            try {
+                const response = await fetch(`${backendUrl}/api/admin/turnos/${id}`, {
+                    method: 'DELETE' // Usamos el método HTTP DELETE
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                alert(data.message || 'Turno eliminado con éxito.');
+                cargarTurnos(); // Vuelve a cargar los turnos para actualizar la tabla
+            } catch (error) {
+                console.error('Error al eliminar el turno:', error);
+                alert('Error al eliminar el turno: ' + error.message);
+            }
+        }
+
+        // Cargar los turnos cuando la página se carga
+        document.addEventListener('DOMContentLoaded', cargarTurnos);
+    </script>
+</body>
+</html>
