@@ -104,6 +104,12 @@
                     <div class="md:w-1/2 p-8 border-r border-gray-200">
                         <h3 class="text-xl font-bold mb-6 text-gray-800">Seleccionar Fecha</h3>
                         <input type="date" id="fecha" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black mb-4">
+                        
+                        <div class="mb-4">
+                            <label class="block text-gray-700 font-medium mb-2">Precio del Servicio:</label>
+                            <p id="precio-servicio" class="text-lg font-bold text-gray-900">$0.00</p>
+                        </div>
+                        
                     </div>
                     
                     <div class="md:w-1/2 p-8">
@@ -224,8 +230,6 @@
 
     // Función para obtener el día de la semana (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
     function getDayOfWeek(dateString) {
-        // Importante: Crear la fecha con 'T00:00:00' para evitar problemas de zona horaria
-        // que podrían cambiar el día de la semana para fechas futuras.
         const date = new Date(dateString + 'T00:00:00');
         return date.getDay();
     }
@@ -302,7 +306,7 @@
                 if (!reservedSlots.includes(slot)) {
                     const option = document.createElement('option');
                     option.value = hour;
-                    option.textContent = hour; // Aquí puedes formatear para mostrar AM/PM si quieres
+                    option.textContent = hour;
                     horaSelect.appendChild(option);
                 }
             });
@@ -317,6 +321,17 @@
         }
     }
 
+    // Define el precio del servicio único "corte"
+    const PRECIO_CORTE = 3000; // <<<--- ¡PRECIO DEL CORTE EN 3000!
+
+    // Función para actualizar el precio mostrado (sin los centavos)
+    function updateServicePrice() {
+        const precioDisplay = document.getElementById('precio-servicio');
+        // Usamos maximumFractionDigits: 0 para eliminar los centavos
+        precioDisplay.textContent = `$${PRECIO_CORTE.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`;
+    }
+
+
     // Inicializar el calendario y las horas al cargar la página
     document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
@@ -325,6 +340,9 @@
 
         // Agrega un listener para cuando cambie la fecha
         document.getElementById('fecha').addEventListener('change', updateAvailableTimes);
+
+        // Llamar a la función al cargar para mostrar el precio inicial
+        updateServicePrice();
     });
 
 
@@ -334,12 +352,13 @@
 
         const fecha = document.getElementById('fecha').value;
         const hora = document.getElementById('hora').value;
-        const servicio = document.getElementById('servicio').value;
+        // El servicio siempre será "corte" ahora
+        const servicio = "corte"; 
         const nombre = document.getElementById('nombre').value;
         const telefono = document.getElementById('telefono').value;
         const email = document.getElementById('email').value; // email es opcional, puede ser vacío
 
-        if (!fecha || !hora || !servicio || !nombre || !telefono) {
+        if (!fecha || !hora || !nombre || !telefono) { // Eliminamos la validación de servicio, ya es fija
             alert('Por favor, completa todos los campos obligatorios.');
             return;
         }
